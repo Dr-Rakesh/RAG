@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siemens Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header with logo */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #00a7b0;
+            font-size: 52px;
+            margin: 0;
+        }
+
+        /* Chat container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .message-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            scroll-behavior: smooth; /* Ensure smooth scrolling */
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .message-content {
+            background-color: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+
+        .message-content div {
+            white-space: pre-wrap;
+        }
+
+        /* User message on the right */
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .user-message .message-content {
+            background-color: #e0f7fa;
+            color: #000000;
+        }
+
+        /* Input area */
+        .input-container {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f5f5f5;
+            position: sticky;
+            bottom: 0;
+        }
+
+        .input-container input {
+            flex-grow: 1;
+            padding: 15px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .input-container button {
+            background-color: #00a7b0;
+            border: none;
+            border-radius: 50%;
+            padding: 10px;
+            cursor: pointer;
+            color: white;
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .input-container button:hover {
+            background-color: #007b83;
+        }
+
+        /* Processing (loading) animation */
+        .loading-dots {
+            display: inline-block;
+            font-size: 18px;
+            margin-left: 5px;
+        }
+
+        .loading-dots span {
+            display: inline-block;
+            animation: blink 1.4s infinite both;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            20% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+
+        /* Style for rendered Markdown tables */
+        .message-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .message-content th, .message-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .message-content th {
+            background-color: #f2f2f2;
+        }
+
+        .message-content tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .message-content tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Responsive tables */
+        .message-content table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        /* Additional Markdown styling */
+        .message-content h1, .message-content h2, .message-content h3, .message-content h4, .message-content h5, .message-content h6 {
+            margin: 10px 0 5px 0;
+        }
+
+        .message-content p {
+            margin: 5px 0;
+        }
+
+        .message-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message-content ul, .message-content ol {
+            padding-left: 20px;
+        }
+
+        .message-content code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .message-content pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+    <!-- Header with logo -->
+    <div class="header">
+        <h1>SIEMENS</h1>
+    </div>
+
+    <!-- Chat container -->
+    <div class="chat-container">
+        <div class="message-container" id="message-container">
+            <!-- Initial Bot Message without logo -->
+            <div class="message">
+                <div class="message-content">
+                    <div>Hello! How can I assist you today?</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input container -->
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Message Troubleshooting bot" autocomplete="off">
+            <button id="send-button" type="button">&#x27A4;</button>
+        </div>
+    </div>
+
+    <script>
+        // Generate a unique session ID for the user
+        let sessionId = localStorage.getItem("sessionId");
+        if (!sessionId) {
+            sessionId = Math.random().toString(36).substring(2);
+            localStorage.setItem("sessionId", sessionId);
+        }
+
+        // Reference to the message container
+        const messageContainer = document.getElementById('message-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Helper function to scroll to the bottom of the chat
+        function scrollToBottom() {
+            // Use setTimeout to ensure the scroll happens after the DOM is updated
+            setTimeout(() => {
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }, 100);  // Small delay to ensure the elements are fully rendered
+        }
+
+        // Function to add a message to the chat window
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            message```html
+Div.classList.add('message');
+            if (isUser) {
+                messageDiv.classList.add('user-message');
+            }
+
+            const messageContent = document.createElement('div');
+            messageContent.classList.add('message-content');
+
+            const messageText = document.createElement('div'); 
+            if (isUser) {
+                messageText.innerText = content; // User messages are plain text
+            } else {
+                messageText.innerHTML = marked.parse(content); // Bot messages are rendered as HTML from Markdown
+            }
+
+            messageContent.appendChild(messageText);
+            messageDiv.appendChild(messageContent);
+            messageContainer.appendChild(messageDiv);
+
+            // Scroll to the bottom after adding the message
+            scrollToBottom();
+        }
+
+        // Function to add a loading indicator
+        function addLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.classList.add('message');
+
+            const loadingContent = document.createElement('div');
+            loadingContent.classList.add('message-content');
+
+            const loadingText = document.createElement('div');
+            loadingText.innerHTML = `<div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>`;
+
+            loadingContent.appendChild(loadingText);
+            loadingDiv.appendChild(loadingContent);
+            loadingDiv.id = 'loading-indicator'; // Set an ID to find it later
+            messageContainer.appendChild(loadingDiv);
+
+            // Scroll to the bottom while loading
+            scrollToBottom();
+        }
+
+        // Function to remove the loading indicator
+        function removeLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+            // Scroll to the bottom after removing the loading indicator
+            scrollToBottom();
+        }
+
+        // Function to send the message to the backend
+        async function sendMessage(message) {
+            addLoadingIndicator(); // Show the loading indicator
+
+            try {
+                const response = await fetch('/message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'session_id': sessionId,
+                        'message': message,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+
+                const data = await response.json();
+                removeLoadingIndicator(); // Remove the loading indicator
+                addMessage(data.message, false); // Add bot's response
+            } catch (error) {
+                console.error('Error:', error);
+                removeLoadingIndicator(); // Remove the loading indicator
+                addMessage('Error: Unable to contact the server.', false);
+            }
+        }
+
+        // Event listener for the send button
+        sendButton.addEventListener('click', () => {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage(message, true);  // Add user's message
+                userInput.value = '';       // Clear the input
+                sendMessage(message);       // Send the message to the backend
+            }
+        });
+
+        // Allow pressing Enter to send the message
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+    </script>
+
+</body>
+</html>
